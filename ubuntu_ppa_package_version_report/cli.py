@@ -1,4 +1,5 @@
 """Console script for ubuntu_ppa_package_version_report."""
+import csv
 import os
 import sys
 import click
@@ -54,8 +55,14 @@ from ubuntu_ppa_package_version_report.ubuntu_ppa_package_version_report \
     help="Report on the binary versions as well as source package "
          "versions",
 )
+@click.option(
+    "--csv-output",
+    is_flag=True,
+    default=False,
+    help="Output in CSV format. This does not apply for binary package versions",
+)
 def main(lp_credentials_store, ppas, series, binary_architecture,
-         binary_versions):
+         binary_versions, csv_output):
     """Console script for ubuntu_ppa_package_version_report."""
     cachedir_prefix = os.environ.get("SNAP_USER_COMMON", "/tmp")
     launchpad_cachedir = os.path.join(
@@ -68,25 +75,48 @@ def main(lp_credentials_store, ppas, series, binary_architecture,
     ubuntu = launchpad.distributions["ubuntu"]
     lp_series = ubuntu.getSeries(name_or_version=series)
     lp_arch_series = lp_series.getDistroArchSeries(archtag=binary_architecture)
+    if csv_output:
+        csv_stdout_writer = csv.writer(sys.stdout)
+        csv_stdout_writer.writerow(
+            [
+                "suite",
+                "ppa",
+                "package",
+                "version",
+            ]
+        )
     for _ppa in ppas:
         _ppa_name = _ppa.split("/")[1]
-        click.echo(_ppa_name)
+        if not csv_output:
+            click.echo(_ppa_name)
         _sources = get_ppa_sources(launchpad, lp_series, _ppa)
 
         for _source in _sources:
             _source_package_name = _source.source_package_name
             _source_package_version = _source.source_package_version
-            click.echo(f"\t{_source_package_name} - {_source_package_version}")
+            if not csv_output:
+                click.echo(f"\t{_source_package_name} - {_source_package_version}")
+            else:
+                csv_stdout_writer.writerow(
+                    [
+                        series,
+                        _ppa_name,
+                        _source_package_name,
+                        _source_package_version,
+                    ]
+                )
 
         if binary_versions:
-            click.echo("\tPublished binaries:")
+            if not csv_output:
+                click.echo("\tPublished binaries:")
             _binaries = get_ppa_published_binaries(launchpad, lp_arch_series,
                                                    _ppa)
             # get current version for  package in the PPA
             for _binary in _binaries:
                 _binary_package_name = _binary.binary_package_name
                 _binary_package_version = _binary.binary_package_version
-                click.echo(f"\t\t{_binary_package_name} - "
+                if not csv_output:
+                    click.echo(f"\t\t{_binary_package_name} - "
                            f"{_binary_package_version}")
 
 
