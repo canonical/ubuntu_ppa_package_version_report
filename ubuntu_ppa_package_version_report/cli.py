@@ -61,8 +61,16 @@ from ubuntu_ppa_package_version_report.ubuntu_ppa_package_version_report \
     default=False,
     help="Output in CSV format. This does not apply for binary package versions",
 )
-def main(lp_credentials_store, ppas, series, binary_architecture,
-         binary_versions, csv_output):
+@click.option(
+    "--verify-launchpad-access",
+    is_flag=True,
+    default=False,
+    help="Verify that launchpad credentials are in place for the "
+         "ubuntu-ppa-package-version-report consumer",
+)
+@click.pass_context
+def main(ctx, lp_credentials_store, ppas, series, binary_architecture,
+         binary_versions, csv_output, verify_launchpad_access):
     """Console script for ubuntu_ppa_package_version_report."""
     cachedir_prefix = os.environ.get("SNAP_USER_COMMON", "/tmp")
     launchpad_cachedir = os.path.join(
@@ -72,6 +80,13 @@ def main(lp_credentials_store, ppas, series, binary_architecture,
         launchpadlib_dir=launchpad_cachedir,
         lp_credentials_store=lp_credentials_store
     )
+    if verify_launchpad_access and launchpad:
+        click.echo("Launchpad access has been successfully verified")
+        ctx.exit()
+    elif verify_launchpad_access and not launchpad:
+        click.echo("Launchpad access verification was not successful")
+        ctx.exit(1)
+
     ubuntu = launchpad.distributions["ubuntu"]
     lp_series = ubuntu.getSeries(name_or_version=series)
     lp_arch_series = lp_series.getDistroArchSeries(archtag=binary_architecture)
