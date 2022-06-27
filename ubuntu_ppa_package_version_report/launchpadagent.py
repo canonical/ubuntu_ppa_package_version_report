@@ -63,7 +63,7 @@ def get_launchpad(launchpadlib_dir=None, lp_credentials_store=None):
         )
     else:
         store = UnencryptedFileCredentialStore(lp_credentials_store)
-    lp_app = "ubuntu-ppa-package-changelog-diff-generator"
+    lp_app = "ubuntu-ppa-package-version-report"
     lp_env = "production"
     lp_version = "devel"
 
